@@ -1,0 +1,42 @@
+version: "3"
+services:
+  auth_service:
+    image: "vima1013/rest-auth-sandbox:native"
+    ports:
+      - "8703:8703"
+  rest-number:
+    image: "vima1013/rest-number:native"
+    depends_on:
+      books_db:
+        condition: service_healthy
+    ports:
+      - "8701:8701"
+    environment:
+      - AUTH_PROXY_MP_REST_URL=http://auth_service:8703
+  rest-book:
+    image: "vima1013/rest-book:native"
+    depends_on:
+      books_db:
+        condition: service_healthy
+    ports:
+      - "8702:8702"
+    environment:
+      - NUMBER_PROXY_MP_REST_URL=http://rest-number:8701
+      - AUTH_PROXY_MP_REST_URL=http://auth_service:8703
+      - AUTH_SECRET=rKcrK7dVrmbBN3bjpdBgp1gdTcnf4SxCNYRT2agKnog=
+      - AUTH_SERVICE_NAME=book_service
+  books_db:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    container_name: books_db
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=rest_book
+      - PGDATA=/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
